@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Gem Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1a1521;
+    --panel: #241d2e;
+    --brass: #c9a227;
+    --brass-light: #e8c766;
+    --brass-shadow: #8a6d1a;
+    --parchment: #f3ead9;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--ink);
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    padding: 20px 14px;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .cabinet {
+    position: relative;
+    background: linear-gradient(180deg, #211a29, #17121d);
+    border: 1px solid rgba(201, 162, 39, 0.3);
+    border-radius: 20px;
+    padding: 20px 18px 18px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+  }
+
+  /* ---------- header ---------- */
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--brass-light);
+    text-align: center;
+    margin: 0 0 12px;
+  }
+
+  .scoreline {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    padding-top: 12px;
+    margin-bottom: 16px;
+    border-top: 1px solid rgba(201, 162, 39, 0.25);
+  }
+
+  .scorebox { text-align: center; }
+
+  .scorebox__label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(243, 234, 217, 0.55);
+    margin-bottom: 2px;
+  }
+
+  .scorebox__value {
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--parchment);
+    display: inline-block;
+  }
+
+  .scorebox--best .scorebox__value { color: var(--brass-light); }
+
+  .scorebox__value.pulse { animation: scorePulse 320ms ease-out; }
+
+  @keyframes scorePulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.22); }
+    100% { transform: scale(1); }
+  }
+
+  /* ---------- board ---------- */
+  .board-well {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 8px;
+    box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(201, 162, 39, 0.15);
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 4px;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+  }
+
+  .cell {
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    position: relative;
+  }
+
+  .cell.preview-valid {
+    box-shadow: inset 0 0 0 2px rgba(232, 199, 102, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    background: rgba(232, 199, 102, 0.16);
+  }
+
+  .cell.preview-invalid {
+    background: rgba(239, 68, 68, 0.28);
+  }
+
+  .cell.clearing {
+    animation: gemClear 320ms ease-in forwards;
+    z-index: 2;
+  }
+
+  @keyframes gemClear {
+    0% { transform: scale(1); filter: brightness(1); }
+    40% { transform: scale(1.1); filter: brightness(1.7); }
+    100% { transform: scale(0.15); filter: brightness(2.4); opacity: 0; }
+  }
+
+  .gem-pop { animation: gemPop 200ms ease-out; }
+
+  @keyframes gemPop {
+    0% { transform: scale(0.5); opacity: 0.3; }
+    65% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ---------- gems ---------- */
+  .gem {
+    border-radius: 5px;
+    box-shadow:
+      inset 0 2px 2px rgba(255, 255, 255, 0.55),
+      inset 0 -3px 5px rgba(0, 0, 0, 0.4),
+      0 2px 3px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gem::before {
+    content: '';
+    position: absolute;
+    top: 8%;
+    right: 8%;
+    width: 38%;
+    height: 38%;
+    background: rgba(255, 255, 255, 0.55);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    border-radius: 3px 4px 0 0;
+  }
+
+  .gem-pink   { background: linear-gradient(135deg, #ff9dc4, #ef5da8 55%, #b8306f); }
+  .gem-yellow { background: linear-gradient(135deg, #ffe27a, #f4c430 55%, #b8890a); }
+  .gem-purple { background: linear-gradient(135deg, #c9a0ff, #9b5de5 55%, #6a2fb8); }
+  .gem-cyan   { background: linear-gradient(135deg, #8be9fd, #4cc9f0 55%, #1c8fb8); }
+  .gem-green  { background: linear-gradient(135deg, #a8e6a1, #6fcf6f 55%, #3e9c3e); }
+  .gem-orange { background: linear-gradient(135deg, #ffb27a, #f4813f 55%, #b8541c); }
+
+  /* ---------- tray ---------- */
+  .tray {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .tray-slot {
+    min-height: 78px;
+    border: 1px solid rgba(201, 162, 39, 0.22);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    touch-action: none;
+    transition: opacity 160ms ease;
+  }
+
+  .tray-slot--empty { opacity: 0.3; border-style: dashed; }
+
+  .tray-piece {
+    display: grid;
+    cursor: grab;
+  }
+
+  .tray-piece:active { cursor: grabbing; }
+
+  .tray-piece > div, .drag-ghost > div { width: 100%; height: 100%; }
+
+  /* ---------- drag ghost ---------- */
+  .drag-ghost {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: grid;
+    pointer-events: none;
+    z-index: 50;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.55));
+  }
+
+  .drag-ghost[hidden] { display: none; }
+
+  /* ---------- game over curtain ---------- */
+  .curtain {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 11, 20, 0.82);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 260ms ease;
+    border-radius: 20px;
+    z-index: 20;
+  }
+
+  .curtain.visible { opacity: 1; pointer-events: auto; }
+
+  .curtain__card {
+    text-align: center;
+    padding: 32px 28px;
+    border: 1px solid rgba(201, 162, 39, 0.4);
+    border-radius: 16px;
+    background: var(--panel);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    max-width: 260px;
+  }
+
+  .curtain__eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass-light);
+    margin: 0 0 6px;
+  }
+
+  .curtain__title {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    margin: 0 0 14px;
+    color: var(--parchment);
+  }
+
+  .curtain__score {
+    font-family: 'Space Grotesk', sans-serif;
+    color: rgba(243, 234, 217, 0.75);
+    margin: 0 0 22px;
+    font-size: 15px;
+  }
+
+  .curtain__score span {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    color: var(--parchment);
+  }
+
+  .brass-btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 13px;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--brass-light), var(--brass));
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--brass-shadow), 0 6px 14px rgba(0, 0, 0, 0.4);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+
+  .brass-btn:hover { transform: translateY(-1px); }
+
+  .brass-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 var(--brass-shadow), 0 3px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  .brass-btn:focus-visible {
+    outline: 2px solid var(--brass-light);
+    outline-offset: 3px;
+  }
+
+  /* ---------- settings button ---------- */
+  .icon-btn {
+    position: absolute;
+    top: 20px;
+    right: 18px;
+    z-index: 25;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    background: linear-gradient(180deg, rgba(232, 199, 102, 0.18), rgba(138, 109, 26, 0.14));
+    color: var(--brass-light);
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 160ms ease, background 160ms ease;
+  }
+
+  .icon-btn:hover { transform: rotate(24deg); background: rgba(232, 199, 102, 0.28); }
+
+  .icon-btn:active { transform: rotate(4deg) scale(0.94); }
+
+  .icon-btn:focus-visible {
+    outline: 2px solid var(--brass-light);
+    outline-offset: 3px;
+  }
+
+  /* ---------- settings menu ---------- */
+  .settings-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 11, 20, 0.82);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+    border-radius: 20px;
+    z-index: 30;
+  }
+
+  .settings-overlay.visible { opacity: 1; pointer-events: auto; }
+
+  .settings-card {
+    width: 100%;
+    max-width: 270px;
+    text-align: center;
+    padding: 26px 24px 24px;
+    border: 1px solid rgba(201, 162, 39, 0.4);
+    border-radius: 16px;
+    background: var(--panel);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .settings-card__eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass-light);
+    margin: 0 0 6px;
+  }
+
+  .settings-card__title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    margin: 0 0 18px;
+    color: var(--parchment);
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 2px;
+    border-top: 1px solid rgba(201, 162, 39, 0.18);
+    text-align: left;
+  }
+
+  .settings-row:first-of-type { border-top: none; }
+
+  .settings-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .settings-row__label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--parchment);
+  }
+
+  .settings-row__hint {
+    font-size: 11px;
+    color: rgba(243, 234, 217, 0.55);
+  }
+
+  .settings-card__done {
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  /* ---------- toggle switch ---------- */
+  .toggle {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(201, 162, 39, 0.25);
+    cursor: pointer;
+    padding: 0;
+    transition: background 160ms ease;
+  }
+
+  .toggle__knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--parchment), #d8cbb0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+    transition: transform 160ms ease, background 160ms ease;
+  }
+
+  .toggle.is-on {
+    background: linear-gradient(180deg, var(--brass-light), var(--brass));
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(201, 162, 39, 0.4);
+  }
+
+  .toggle.is-on .toggle__knob {
+    transform: translateX(20px);
+    background: linear-gradient(180deg, #fffef8, var(--parchment));
+  }
+
+  .toggle:focus-visible {
+    outline: 2px solid var(--brass-light);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 360px) {
+    .cabinet { padding: 16px 12px 14px; }
+    .scoreline { gap: 18px; }
+    .scorebox__value { font-size: 26px; }
+    .icon-btn { top: 14px; right: 12px; width: 30px; height: 30px; font-size: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="cabinet" id="cabinet">
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Open settings" title="Settings">⚙️</button>
+
+      <p class="eyebrow">Gem Grid</p>
+
+      <div class="scoreline">
+        <div class="scorebox">
+          <span class="scorebox__label">Score</span>
+          <span class="scorebox__value" id="scoreValue">0</span>
+        </div>
+        <div class="scorebox scorebox--best">
+          <span class="scorebox__label">Best</span>
+          <span class="scorebox__value" id="bestValue">0</span>
+        </div>
+      </div>
+
+      <div class="board-well">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="tray" id="tray"></div>
+
+      <div class="curtain" id="curtain">
+        <div class="curtain__card">
+          <p class="curtain__eyebrow">Specimen Catalogued</p>
+          <h2 class="curtain__title">Game Over</h2>
+          <p class="curtain__score">Score: <span id="finalScoreValue">0</span></p>
+          <button class="brass-btn" id="restartBtn">Play Again</button>
+        </div>
+      </div>
+
+      <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-card">
+          <p class="settings-card__eyebrow">Cabinet Controls</p>
+          <h2 class="settings-card__title">Settings</h2>
+
+          <div class="settings-row">
+            <div class="settings-row__text">
+              <span class="settings-row__label">Background Music</span>
+              <span class="settings-row__hint">Looping soundtrack</span>
+            </div>
+            <button class="toggle" id="bgmToggle" type="button" role="switch" aria-checked="true" aria-label="Toggle background music">
+              <span class="toggle__knob"></span>
+            </button>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row__text">
+              <span class="settings-row__label">Sound Effects</span>
+              <span class="settings-row__hint">Placement &amp; scoring chimes</span>
+            </div>
+            <button class="toggle" id="sfxToggle" type="button" role="switch" aria-checked="true" aria-label="Toggle sound effects">
+              <span class="toggle__knob"></span>
+            </button>
+          </div>
+
+          <button class="brass-btn settings-card__done" id="settingsDoneBtn" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="drag-ghost" id="dragGhost" hidden></div>
+  </div>
+
+  <!--
+    Background music: drop your own file at assets/audio/bgm.mp3
+    (a folder placed next to this HTML file) to enable looping BGM.
+    Until that file exists, this will fail to load silently (see console).
+  -->
+  <audio id="bgmAudio" src="assets/audio/bgm.mp3" loop preload="auto"></audio>
+
+<script>
+(function () {
+  'use strict';
+
+  var SIZE = 8;
+  var BOARD_GAP = 4;
+  var GEM_COLORS = ['pink', 'yellow', 'purple', 'cyan', 'green', 'orange'];
+  var CLEAR_ANIM_MS = 320;
+
+  var SHAPE_PATTERNS = [
+    ['1'],
+    ['11'],
+    ['1', '1'],
+    ['111'],
+    ['1', '1', '1'],
+    ['1111'],
+    ['1', '1', '1', '1'],
+    ['11111'],
+    ['1', '1', '1', '1', '1'],
+    ['11', '11'],
+    ['111', '111', '111'],
+    ['10', '11'],
+    ['11', '10'],
+    ['11', '01'],
+    ['01', '11'],
+    ['100', '100', '110'],
+    ['001', '111'],
+    ['001', '001', '011'],
+    ['100', '111'],
+    ['011', '110'],
+    ['10', '11', '01'],
+    ['110', '011'],
+    ['01', '11', '10'],
+    ['111', '010'],
+    ['010', '111'],
+    ['10', '11', '10'],
+    ['01', '11', '01'],
+    ['010', '111', '010'],
+    ['10', '10', '10', '11'],
+    ['1111', '1000']
+  ];
+
+  // ---------- pure logic ----------
+
+  function parseShape(pattern) {
+    var cells = [];
+    for (var r = 0; r < pattern.length; r++) {
+      for (var c = 0; c < pattern[r].length; c++) {
+        if (pattern[r][c] === '1') cells.push([r, c]);
+      }
+    }
+    var rows = pattern.length;
+    var cols = 0;
+    for (var i = 0; i < pattern.length; i++) cols = Math.max(cols, pattern[i].length);
+    return { cells: cells, rows: rows, cols: cols };
+  }
+
+  var PARSED_SHAPES = SHAPE_PATTERNS.map(parseShape);
+
+  function randomShape() {
+    var shape = PARSED_SHAPES[Math.floor(Math.random() * PARSED_SHAPES.length)];
+    var color = GEM_COLORS[Math.floor(Math.random() * GEM_COLORS.length)];
+    return { cells: shape.cells, rows: shape.rows, cols: shape.cols, color: color };
+  }
+
+  function makeBoard() {
+    var b = [];
+    for (var r = 0; r < SIZE; r++) b.push(new Array(SIZE).fill(null));
+    return b;
+  }
+
+  function canPlace(board, cells, anchorRow, anchorCol) {
+    for (var i = 0; i < cells.length; i++) {
+      var r = anchorRow + cells[i][0];
+      var c = anchorCol + cells[i][1];
+      if (r < 0 || r >= SIZE || c < 0 || c >= SIZE || board[r][c] !== null) return false;
+    }
+    return true;
+  }
+
+  function place(board, cells, anchorRow, anchorCol, color) {
+    for (var i = 0; i < cells.length; i++) {
+      board[anchorRow + cells[i][0]][anchorCol + cells[i][1]] = color;
+    }
+  }
+
+  function checkLines(board) {
+    var rowsToClear = [];
+    var colsToClear = [];
+    for (var r = 0; r < SIZE; r++) {
+      var full = true;
+      for (var c = 0; c < SIZE; c++) if (board[r][c] === null) { full = false; break; }
+      if (full) rowsToClear.push(r);
+    }
+    for (var c2 = 0; c2 < SIZE; c2++) {
+      var fullCol = true;
+      for (var r2 = 0; r2 < SIZE; r2++) if (board[r2][c2] === null) { fullCol = false; break; }
+      if (fullCol) colsToClear.push(c2);
+    }
+    return { rowsToClear: rowsToClear, colsToClear: colsToClear };
+  }
+
+  function canFitAnywhere(board, cells, cols, rows) {
+    for (var r = 0; r <= SIZE - rows; r++) {
+      for (var c = 0; c <= SIZE - cols; c++) {
+        if (canPlace(board, cells, r, c)) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------- state ----------
+
+  var board = makeBoard();
+  var score = 0;
+  var bestScore = 0;
+  var tray = [null, null, null];
+  var cellEls = [];
+  var dragging = null;
+  var settings = { bgmOn: true, sfxOn: true };
+  var audioCtx = null;
+  var audioUnlocked = false;
+
+  // ---------- dom refs ----------
+
+  var boardEl = document.getElementById('board');
+  var trayEl = document.getElementById('tray');
+  var scoreValueEl = document.getElementById('scoreValue');
+  var bestValueEl = document.getElementById('bestValue');
+  var finalScoreValueEl = document.getElementById('finalScoreValue');
+  var curtainEl = document.getElementById('curtain');
+  var restartBtn = document.getElementById('restartBtn');
+  var ghostEl = document.getElementById('dragGhost');
+  var bgmAudio = document.getElementById('bgmAudio');
+  var settingsBtn = document.getElementById('settingsBtn');
+  var settingsOverlay = document.getElementById('settingsOverlay');
+  var settingsDoneBtn = document.getElementById('settingsDoneBtn');
+  var bgmToggle = document.getElementById('bgmToggle');
+  var sfxToggle = document.getElementById('sfxToggle');
+
+  // ---------- audio: synthesized sfx (Web Audio API) ----------
+
+  function getAudioCtx() {
+    if (audioCtx) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    } catch (err) {
+      audioCtx = null;
+    }
+    return audioCtx;
+  }
+
+  function playTone(ctx, freq, startTime, duration, type, peakGain) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.05);
+  }
+
+  function playPlaceSfx() {
+    if (!settings.sfxOn) return;
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+    playTone(ctx, 196, now, 0.09, 'sine', 0.16);
+    playTone(ctx, 294, now + 0.015, 0.07, 'triangle', 0.09);
+  }
+
+  function playClearSfx(lineCount) {
+    if (!settings.sfxOn) return;
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+    var notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    var n = Math.min(lineCount + 1, notes.length);
+    for (var i = 0; i < n; i++) {
+      playTone(ctx, notes[i], now + i * 0.07, 0.22, 'triangle', 0.14);
+    }
+  }
+
+  function playGameOverSfx() {
+    if (!settings.sfxOn) return;
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+    var notes = [392.00, 349.23, 293.66];
+    for (var i = 0; i < notes.length; i++) {
+      playTone(ctx, notes[i], now + i * 0.14, 0.32, 'sawtooth', 0.10);
+    }
+  }
+
+  // ---------- audio: background music (HTML5 Audio element) ----------
+
+  bgmAudio.volume = 0.45;
+
+  bgmAudio.addEventListener('error', function () {
+    console.warn('Gem Grid: no background music found at assets/audio/bgm.mp3 — add your own MP3 file there to enable BGM.');
+  });
+
+  function tryPlayBgm() {
+    if (!settings.bgmOn) return;
+    var playPromise = bgmAudio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(function () {
+        // Blocked by autoplay rules, or the MP3 isn't in place yet.
+        // This is retried on the next user interaction or toggle.
+      });
+    }
+  }
+
+  function pauseBgm() {
+    bgmAudio.pause();
+  }
+
+  function unlockAudioOnce() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    getAudioCtx();
+    tryPlayBgm();
+    document.removeEventListener('pointerdown', unlockAudioOnce);
+    document.removeEventListener('keydown', unlockAudioOnce);
+  }
+  document.addEventListener('pointerdown', unlockAudioOnce);
+  document.addEventListener('keydown', unlockAudioOnce);
+
+  // ---------- settings menu ----------
+
+  function setToggleState(btn, on) {
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+  }
+
+  setToggleState(bgmToggle, settings.bgmOn);
+  setToggleState(sfxToggle, settings.sfxOn);
+
+  settingsBtn.addEventListener('click', function () {
+    settingsOverlay.classList.add('visible');
+  });
+
+  settingsDoneBtn.addEventListener('click', function () {
+    settingsOverlay.classList.remove('visible');
+  });
+
+  settingsOverlay.addEventListener('click', function (e) {
+    if (e.target === settingsOverlay) {
+      settingsOverlay.classList.remove('visible');
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && settingsOverlay.classList.contains('visible')) {
+      settingsOverlay.classList.remove('visible');
+    }
+  });
+
+  bgmToggle.addEventListener('click', function () {
+    settings.bgmOn = !settings.bgmOn;
+    setToggleState(bgmToggle, settings.bgmOn);
+    if (settings.bgmOn) {
+      tryPlayBgm();
+    } else {
+      pauseBgm();
+    }
+  });
+
+  sfxToggle.addEventListener('click', function () {
+    settings.sfxOn = !settings.sfxOn;
+    setToggleState(sfxToggle, settings.sfxOn);
+    if (settings.sfxOn) {
+      var ctx = getAudioCtx();
+      if (ctx) playTone(ctx, 880, ctx.currentTime, 0.05, 'sine', 0.10);
+    }
+  });
+
+  // ---------- rendering ----------
+
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    cellEls = [];
+    for (var r = 0; r < SIZE; r++) {
+      cellEls[r] = [];
+      for (var c = 0; c < SIZE; c++) {
+        var div = document.createElement('div');
+        div.className = 'cell';
+        var color = board[r][c];
+        if (color) div.className += ' gem gem-' + color;
+        boardEl.appendChild(div);
+        cellEls[r][c] = div;
+      }
+    }
+  }
+
+  function renderTray() {
+    trayEl.innerHTML = '';
+    for (var i = 0; i < tray.length; i++) {
+      (function (slotIndex) {
+        var piece = tray[slotIndex];
+        var slot = document.createElement('div');
+        slot.className = 'tray-slot';
+
+        if (piece) {
+          var grid = document.createElement('div');
+          grid.className = 'tray-piece';
+          grid.style.gridTemplateColumns = 'repeat(' + piece.cols + ', 17px)';
+          grid.style.gridTemplateRows = 'repeat(' + piece.rows + ', 17px)';
+          grid.style.gap = '3px';
+
+          for (var r = 0; r < piece.rows; r++) {
+            for (var c = 0; c < piece.cols; c++) {
+              var cellDiv = document.createElement('div');
+              var filled = false;
+              for (var k = 0; k < piece.cells.length; k++) {
+                if (piece.cells[k][0] === r && piece.cells[k][1] === c) { filled = true; break; }
+              }
+              if (filled) cellDiv.className = 'gem gem-' + piece.color;
+              else cellDiv.style.visibility = 'hidden';
+              grid.appendChild(cellDiv);
+            }
+          }
+          slot.appendChild(grid);
+          slot.addEventListener('pointerdown', function (e) { startDrag(e, slotIndex); });
+        } else {
+          slot.classList.add('tray-slot--empty');
+        }
+
+        trayEl.appendChild(slot);
+      })(i);
+    }
+  }
+
+  function clearPreviewClasses() {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        cellEls[r][c].classList.remove('preview-valid', 'preview-invalid');
+      }
+    }
+  }
+
+  function updateScoreDisplay() {
+    scoreValueEl.textContent = score;
+    if (score > bestScore) {
+      bestScore = score;
+      bestValueEl.textContent = bestScore;
+    }
+    scoreValueEl.classList.remove('pulse');
+    void scoreValueEl.offsetWidth;
+    scoreValueEl.classList.add('pulse');
+  }
+
+  // ---------- drag & drop ----------
+
+  function getBoardMetrics() {
+    var rect = boardEl.getBoundingClientRect();
+    var stride = (rect.width + BOARD_GAP) / SIZE;
+    var cellPx = stride - BOARD_GAP;
+    return { rect: rect, stride: stride, cellPx: cellPx };
+  }
+
+  function startDrag(e, slotIndex) {
+    e.preventDefault();
+    var piece = tray[slotIndex];
+    if (!piece) return;
+
+    var metrics = getBoardMetrics();
+
+    dragging = {
+      slotIndex: slotIndex,
+      piece: piece,
+      rect: metrics.rect,
+      stride: metrics.stride,
+      cellPx: metrics.cellPx,
+      pointerId: e.pointerId,
+      previewAnchor: null
+    };
+
+    ghostEl.innerHTML = '';
+    ghostEl.style.gridTemplateColumns = 'repeat(' + piece.cols + ', ' + metrics.cellPx + 'px)';
+    ghostEl.style.gridTemplateRows = 'repeat(' + piece.rows + ', ' + metrics.cellPx + 'px)';
+    ghostEl.style.gap = BOARD_GAP + 'px';
+
+    for (var r = 0; r < piece.rows; r++) {
+      for (var c = 0; c < piece.cols; c++) {
+        var div = document.createElement('div');
+        var filled = false;
+        for (var k = 0; k < piece.cells.length; k++) {
+          if (piece.cells[k][0] === r && piece.cells[k][1] === c) { filled = true; break; }
+        }
+        if (filled) div.className = 'gem gem-' + piece.color;
+        else div.style.visibility = 'hidden';
+        ghostEl.appendChild(div);
+      }
+    }
+
+    ghostEl.hidden = false;
+    positionGhost(e.clientX, e.clientY);
+    updateHoverPreview();
+
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+  }
+
+  function positionGhost(clientX, clientY) {
+    var piece = dragging.piece;
+    var ghostWidth = piece.cols * dragging.cellPx + (piece.cols - 1) * BOARD_GAP;
+    var ghostHeight = piece.rows * dragging.cellPx + (piece.rows - 1) * BOARD_GAP;
+    var lift = dragging.cellPx * 1.4;
+
+    var left = clientX - ghostWidth / 2;
+    var top = clientY - lift - ghostHeight;
+
+    ghostEl.style.left = left + 'px';
+    ghostEl.style.top = top + 'px';
+  }
+
+  function updateHoverPreview() {
+    clearPreviewClasses();
+
+    var piece = dragging.piece;
+    var ghostRect = ghostEl.getBoundingClientRect();
+    var relX = ghostRect.left - dragging.rect.left;
+    var relY = ghostRect.top - dragging.rect.top;
+    var anchorCol = Math.round(relX / dragging.stride);
+    var anchorRow = Math.round(relY / dragging.stride);
+
+    var roughlyOverBoard =
+      anchorRow > -piece.rows && anchorRow < SIZE &&
+      anchorCol > -piece.cols && anchorCol < SIZE;
+
+    if (!roughlyOverBoard) {
+      dragging.previewAnchor = null;
+      return;
+    }
+
+    var valid = canPlace(board, piece.cells, anchorRow, anchorCol);
+    dragging.previewAnchor = { anchorRow: anchorRow, anchorCol: anchorCol, valid: valid };
+
+    for (var i = 0; i < piece.cells.length; i++) {
+      var r = anchorRow + piece.cells[i][0];
+      var c = anchorCol + piece.cells[i][1];
+      if (r >= 0 && r < SIZE && c >= 0 && c < SIZE) {
+        cellEls[r][c].classList.add(valid ? 'preview-valid' : 'preview-invalid');
+      }
+    }
+  }
+
+  function onDragMove(e) {
+    if (!dragging) return;
+    positionGhost(e.clientX, e.clientY);
+    updateHoverPreview();
+  }
+
+  function onDragEnd() {
+    if (!dragging) return;
+
+    var piece = dragging.piece;
+    var slotIndex = dragging.slotIndex;
+    var anchor = dragging.previewAnchor;
+
+    clearPreviewClasses();
+    ghostEl.hidden = true;
+
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+
+    if (anchor && anchor.valid) {
+      commitPlacement(piece, anchor.anchorRow, anchor.anchorCol, slotIndex);
+    }
+
+    dragging = null;
+  }
+
+  // ---------- game flow ----------
+
+  function commitPlacement(piece, anchorRow, anchorCol, slotIndex) {
+    playPlaceSfx();
+    place(board, piece.cells, anchorRow, anchorCol, piece.color);
+    tray[slotIndex] = null;
+
+    renderBoard();
+    for (var i = 0; i < piece.cells.length; i++) {
+      var r = anchorRow + piece.cells[i][0];
+      var c = anchorCol + piece.cells[i][1];
+      cellEls[r][c].classList.add('gem-pop');
+    }
+    renderTray();
+
+    score += piece.cells.length;
+
+    var lines = checkLines(board);
+    if (lines.rowsToClear.length || lines.colsToClear.length) {
+      animateAndClearLines(lines.rowsToClear, lines.colsToClear);
+    } else {
+      updateScoreDisplay();
+      afterPlacementUpkeep();
+    }
+  }
+
+  function animateAndClearLines(rowsToClear, colsToClear) {
+    var keys = {};
+    var r, c;
+    for (var i = 0; i < rowsToClear.length; i++) {
+      r = rowsToClear[i];
+      for (c = 0; c < SIZE; c++) keys[r + ',' + c] = true;
+    }
+    for (var j = 0; j < colsToClear.length; j++) {
+      c = colsToClear[j];
+      for (r = 0; r < SIZE; r++) keys[r + ',' + c] = true;
+    }
+
+    Object.keys(keys).forEach(function (key) {
+      var parts = key.split(',');
+      cellEls[+parts[0]][+parts[1]].classList.add('clearing');
+    });
+
+    var linesCleared = rowsToClear.length + colsToClear.length;
+    playClearSfx(linesCleared);
+    score += 10 * linesCleared * linesCleared;
+    updateScoreDisplay();
+
+    setTimeout(function () {
+      Object.keys(keys).forEach(function (key) {
+        var parts = key.split(',');
+        board[+parts[0]][+parts[1]] = null;
+      });
+      renderBoard();
+      afterPlacementUpkeep();
+    }, CLEAR_ANIM_MS);
+  }
+
+  function isGameOver() {
+    for (var i = 0; i < tray.length; i++) {
+      var piece = tray[i];
+      if (piece && canFitAnywhere(board, piece.cells, piece.cols, piece.rows)) return false;
+    }
+    return true;
+  }
+
+  function afterPlacementUpkeep() {
+    var allEmpty = tray.every(function (p) { return p === null; });
+    if (allEmpty) {
+      tray = [randomShape(), randomShape(), randomShape()];
+    }
+    renderTray();
+    if (isGameOver()) showGameOver();
+  }
+
+  function showGameOver() {
+    finalScoreValueEl.textContent = score;
+    curtainEl.classList.add('visible');
+    playGameOverSfx();
+  }
+
+  function hideGameOver() {
+    curtainEl.classList.remove('visible');
+  }
+
+  restartBtn.addEventListener('click', function () {
+    board = makeBoard();
+    score = 0;
+    tray = [null, null, null];
+    hideGameOver();
+    renderBoard();
+    scoreValueEl.textContent = '0';
+    afterPlacementUpkeep();
+  });
+
+  // ---------- init ----------
+
+  function initGame() {
+    board = makeBoard();
+    score = 0;
+    renderBoard();
+    scoreValueEl.textContent = '0';
+    bestValueEl.textContent = '0';
+    tray = [randomShape(), randomShape(), randomShape()];
+    renderTray();
+  }
+
+  initGame();
+})();
+</script>
+</body>
+</html>
