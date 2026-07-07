@@ -1153,7 +1153,20 @@
   initGame();
 })();
   // ---------- init ----------
-
+// Sửa triệt để lỗi mất nhạc nền khi hết bài trên điện thoại
+  bgmAudio.addEventListener('ended', function() {
+    if (settings.bgmOn) {
+      this.currentTime = 0;
+      this.src = "assets/audio/bgm.mp3"; // Buộc trình duyệt nhận diện lại file
+      this.load();
+      var playPromise = this.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(function(error) {
+          console.log("Trình duyệt chặn lặp:", error);
+        });
+      }
+    }
+  }, false);
   function initGame() {
     board = makeBoard();
     score = 0;
